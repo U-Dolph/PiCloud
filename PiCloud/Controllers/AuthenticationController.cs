@@ -1,10 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using PiCloud.Configurations;
 using PiCloud.Data;
 using PiCloud.Models;
-using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -85,6 +83,55 @@ namespace PiCloud.Controllers
             {
                 return BadRequest();
             }
+        }
+
+        [HttpPost]
+        [Route("login")]
+        public async Task<IActionResult> Login([FromBody] UserLoginDTO userDto)
+        {
+            if (ModelState.IsValid)
+            {
+                var existing_user = await _userManager.FindByNameAsync(userDto.Username);
+
+                if (existing_user == null)
+                    return BadRequest(new AuthResult()
+                    {
+                        Result = false,
+                        Errors = new List<string>()
+                        {
+                            "Invalid payload"
+                        }
+                    });
+
+                var is_correct = await _userManager.CheckPasswordAsync(existing_user, userDto.Password);
+
+                if (!is_correct)
+                    return BadRequest(new AuthResult()
+                    {
+                        Result = false,
+                        Errors = new List<string>()
+                        {
+                            "Invalid payload"
+                        }
+                    });
+
+                var token = generateJwt(existing_user);
+
+                return Ok(new AuthResult()
+                {
+                    Result = true,
+                    Token = token
+                });
+            }
+
+            return BadRequest(new AuthResult()
+            {
+                Result = false,
+                Errors = new List<string>()
+                {
+                    "Invalid payload"
+                }
+            });
         }
 
         private string generateJwt(IdentityUser user)
