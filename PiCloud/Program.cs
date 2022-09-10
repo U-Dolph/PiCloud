@@ -1,23 +1,25 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PiCloud.Configurations;
 using PiCloud.Data;
 using Serilog;
+using System.Diagnostics;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-var logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.FromLogContext()
-    .CreateLogger();
+var _logger = new LoggerConfiguration().WriteTo.File("..\\Logs\\log-.log", rollingInterval: RollingInterval.Day).CreateLogger();
+builder.Logging.AddSerilog(_logger);
 
 string connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(o => o.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
 builder.Services.Configure<JwtConfig>(builder.Configuration.GetSection("JwtConfig"));
+
+Debug.WriteLine(builder.Configuration.GetSection("JwtConfig"));
 
 builder.Services.AddAuthentication(options => {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -25,22 +27,32 @@ builder.Services.AddAuthentication(options => {
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(jwt =>
 {
-    var key = Encoding.UTF8.GetBytes(builder.Configuration.GetSection("JwtConfig:Key").Value);
+    var key = Encoding.ASCII.GetBytes(builder.Configuration.GetSection("JwtConfig:Key").Value);
 
     jwt.SaveToken = true;
     jwt.TokenValidationParameters = new TokenValidationParameters()
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = true, // Might not work -> change it to false
-        ValidateAudience = true, // Might not work -> change it to false
+        ValidateIssuer = false, // Might not work -> change it to false
+        ValidateAudience = false, // Might not work -> change it to false
         RequireExpirationTime = false, // during dev
         ValidateLifetime = true,
     };
 });
 
-builder.Logging.ClearProviders();
-builder.Logging.AddSerilog();
+builder.Services.AddDefaultIdentity<IdentityUser>(options =>
+{
+    options.SignIn.RequireConfirmedEmail = false;
+    options.Password.RequireNonAlphanumeric = false;
+    
+    // Remove when publishing
+    options.Password.RequireDigit = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequiredLength = 1;
+}).AddEntityFrameworkStores<AppDbContext>();
+
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

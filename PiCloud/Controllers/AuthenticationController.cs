@@ -1,13 +1,14 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using PiCloud.Configurations;
 using PiCloud.Data;
 using PiCloud.Models;
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Serilog;
 
 namespace PiCloud.Controllers
 {
@@ -16,18 +17,21 @@ namespace PiCloud.Controllers
     public class AuthenticationController : ControllerBase
     {
         private readonly UserManager<IdentityUser> _userManager;
-        private readonly JwtConfig _jwtConfig;
+        //private readonly JwtConfig _jwtConfig;
+        private readonly IConfiguration _configuration;
 
-        public AuthenticationController(UserManager<IdentityUser> userManager, JwtConfig jwtConfig)
+        public AuthenticationController(UserManager<IdentityUser> userManager, /*JwtConfig jwtConfig*/ IConfiguration configuration)
         {
             _userManager = userManager;
-            _jwtConfig = jwtConfig;
+            //_jwtConfig = jwtConfig;
+            _configuration = configuration;
         }
 
         [HttpPost]
         [Route("register")]
         public async Task<IActionResult> Register([FromBody] UserRegistrationDTO userDto)
         {
+            Log.Information("Auth ");
             //Validate request
             if (ModelState.IsValid)
             {
@@ -86,7 +90,8 @@ namespace PiCloud.Controllers
         private string generateJwt(IdentityUser user)
         {
             var jwtTokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_jwtConfig.Key);
+            //var key = Encoding.UTF8.GetBytes(_jwtConfig.Key);
+            var key = Encoding.UTF8.GetBytes(_configuration.GetSection("JwtConfig:Key").Value);
 
             var tokenDescriptor = new SecurityTokenDescriptor()
             {
