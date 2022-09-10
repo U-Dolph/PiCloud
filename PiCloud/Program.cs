@@ -23,8 +23,7 @@ builder.Services.AddAuthentication(options => {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(jwt =>
+}).AddJwtBearer(jwt =>
 {
     var key = Encoding.UTF8.GetBytes(builder.Configuration.GetSection("JwtConfig:Key").Value);
 
