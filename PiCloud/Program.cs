@@ -41,7 +41,7 @@ builder.Services.AddAuthentication(options => {
     };
 });
 
-builder.Services.AddDefaultIdentity<IdentityUser>(options =>
+builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
     options.SignIn.RequireConfirmedEmail = false;
     options.Password.RequireNonAlphanumeric = false;
@@ -51,7 +51,7 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
     options.Password.RequireUppercase = false;
     options.Password.RequireLowercase = false;
     options.Password.RequiredLength = 1;
-}).AddEntityFrameworkStores<AppDbContext>();
+}).AddEntityFrameworkStores<AppDbContext>().AddRoles<IdentityRole>();
 
 
 builder.Services.AddControllers();

@@ -7,6 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Serilog;
+using Microsoft.AspNetCore.Identity.UI;
 
 namespace PiCloud.Controllers
 {
@@ -17,12 +18,14 @@ namespace PiCloud.Controllers
         private readonly UserManager<IdentityUser> _userManager;
         //private readonly JwtConfig _jwtConfig;
         private readonly IConfiguration _configuration;
+        private readonly RoleManager<IdentityRole> _roleManager;
 
-        public AuthenticationController(UserManager<IdentityUser> userManager, /*JwtConfig jwtConfig*/ IConfiguration configuration)
+        public AuthenticationController(UserManager<IdentityUser> userManager, /*JwtConfig jwtConfig*/ IConfiguration configuration, RoleManager<IdentityRole> roleManager)
         {
             _userManager = userManager;
             //_jwtConfig = jwtConfig;
             _configuration = configuration;
+            _roleManager = roleManager;
         }
 
         [HttpPost]
@@ -57,15 +60,12 @@ namespace PiCloud.Controllers
 
                 var is_created = await _userManager.CreateAsync(new_user, userDto.Password);
 
-                //Create a jwt if success
                 if (is_created.Succeeded)
                 {
-                    var token = generateJwt(new_user);
-
+                    await _userManager.AddToRoleAsync(new_user, "user");
                     return Ok(new AuthResult()
                     {
                         Result = true,
-                        Token = token
                     });
                 }
 
@@ -115,7 +115,7 @@ namespace PiCloud.Controllers
                         }
                     });
 
-                var token = generateJwt(existing_user);
+                var token = await generateJwt(existing_user);
 
                 return Ok(new AuthResult()
                 {
@@ -134,22 +134,17 @@ namespace PiCloud.Controllers
             });
         }
 
-        private string generateJwt(IdentityUser user)
+        private async Task<string> generateJwt(IdentityUser user)
         {
             var jwtTokenHandler = new JwtSecurityTokenHandler();
             //var key = Encoding.UTF8.GetBytes(_jwtConfig.Key);
             var key = Encoding.UTF8.GetBytes(_configuration.GetSection("JwtConfig:Key").Value);
 
+            var claims = await getValidClaims(user);
+
             var tokenDescriptor = new SecurityTokenDescriptor()
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim("Id", user.Id),
-                    new Claim(JwtRegisteredClaimNames.Sub, user.Email),
-                    new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                    new Claim(JwtRegisteredClaimNames.Iat, DateTime.Now.ToUniversalTime().ToString())
-                }),
+                Subject = new ClaimsIdentity(claims),
 
                 Expires = DateTime.Now.AddDays(365),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256)
@@ -159,6 +154,41 @@ namespace PiCloud.Controllers
             var jwtToken = jwtTokenHandler.WriteToken(token);
 
             return jwtToken;
+        }
+
+        private async Task<List<Claim>> getValidClaims(IdentityUser user)
+        {
+            var _options = new IdentityOptions();
+            var _claims = new List<Claim> 
+            {
+                new Claim("Id", user.Id),
+                new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat, DateTime.Now.ToUniversalTime().ToString())
+            };
+
+            var userClaims = await _userManager.GetClaimsAsync(user);
+            _claims.AddRange(userClaims);
+
+            var userRoles = await _userManager.GetRolesAsync(user);
+
+            foreach (var userRole in userRoles)
+            {
+                var role = await _roleManager.FindByNameAsync(userRole);
+
+                if (role != null)
+                {
+                    _claims.Add(new Claim(ClaimTypes.Role, userRole));
+                    var roleClaims = await _roleManager.GetClaimsAsync(role);
+
+                    foreach (var roleClaim in roleClaims)
+                        _claims.Add(roleClaim);
+                    
+                }
+            }
+
+            return _claims;
         }
     }
 }

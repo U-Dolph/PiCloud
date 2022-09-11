@@ -10,7 +10,6 @@ namespace PiCloud.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class GamesController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -19,6 +18,7 @@ namespace PiCloud.Controllers
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin,user")]
         public async Task<IEnumerable<Game>> Get()
         {
             return await _context.Games.ToListAsync();
@@ -27,6 +27,7 @@ namespace PiCloud.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(Game), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin,user")]
         public async Task<IActionResult> GetById(int id)
         {
             var game = await _context.Games.FindAsync(id);
@@ -35,6 +36,7 @@ namespace PiCloud.Controllers
 
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
         public async Task<IActionResult> AddGame(Game game)
         {
             await _context.Games.AddAsync(game);
@@ -46,6 +48,7 @@ namespace PiCloud.Controllers
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
         public async Task<IActionResult> UpdateGame(int id, Game game)
         {
             if (id != game.Id) return BadRequest();
@@ -59,6 +62,7 @@ namespace PiCloud.Controllers
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
         public async Task<IActionResult> DeleteGame(int id)
         {
             var gameToDelete = await _context.Games.FindAsync(id);
