@@ -10,5 +10,6 @@ namespace PiCloud.Data
         {}
 
         public DbSet<Game> Games { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
     }
 }

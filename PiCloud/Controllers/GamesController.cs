@@ -45,7 +45,7 @@ namespace PiCloud.Controllers
             return CreatedAtAction(nameof(GetById), new {id = game.Id}, game);
         }
 
-        [HttpPut("{id}")]
+        [HttpPatch("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]

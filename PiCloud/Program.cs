@@ -25,25 +25,28 @@ builder.Services.AddResponseCaching(x =>
     x.MaximumBodySize = 1024;
 });
 
+var key = Encoding.ASCII.GetBytes(builder.Configuration.GetSection("JwtConfig:Key").Value);
+var tokenValidationParameters = new TokenValidationParameters()
+{
+    ValidateIssuerSigningKey = true,
+    IssuerSigningKey = new SymmetricSecurityKey(key),
+    ValidateIssuer = false, // Might not work -> change it to false
+    ValidateAudience = false, // Might not work -> change it to false
+    RequireExpirationTime = false, // during dev
+    ValidateLifetime = true,
+};
+
 builder.Services.AddAuthentication(options => {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(jwt =>
 {
-    var key = Encoding.ASCII.GetBytes(builder.Configuration.GetSection("JwtConfig:Key").Value);
-
     jwt.SaveToken = true;
-    jwt.TokenValidationParameters = new TokenValidationParameters()
-    {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false, // Might not work -> change it to false
-        ValidateAudience = false, // Might not work -> change it to false
-        RequireExpirationTime = false, // during dev
-        ValidateLifetime = true,
-    };
+    jwt.TokenValidationParameters = tokenValidationParameters;
 });
+
+builder.Services.AddSingleton(tokenValidationParameters);
 
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
