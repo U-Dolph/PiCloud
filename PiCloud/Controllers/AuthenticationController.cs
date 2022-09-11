@@ -3,11 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using PiCloud.Data;
 using PiCloud.Models;
+using Serilog;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Serilog;
-using Microsoft.AspNetCore.Identity.UI;
 
 namespace PiCloud.Controllers
 {

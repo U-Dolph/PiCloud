@@ -19,7 +19,11 @@ builder.Services.AddDbContext<AppDbContext>(o => o.UseMySql(connectionString, Se
 
 builder.Services.Configure<JwtConfig>(builder.Configuration.GetSection("JwtConfig"));
 
-Debug.WriteLine(builder.Configuration.GetSection("JwtConfig"));
+builder.Services.AddResponseCaching(x =>
+{
+    x.UseCaseSensitivePaths = false;
+    x.MaximumBodySize = 1024;
+});
 
 builder.Services.AddAuthentication(options => {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -74,5 +78,17 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.Use(async (context, next) =>
+{
+    context.Response.GetTypedHeaders().CacheControl =
+        new Microsoft.Net.Http.Headers.CacheControlHeaderValue()
+        {
+            Public = true,
+            MaxAge = TimeSpan.FromSeconds(300)
+        };
+
+    await next();
+});
 
 app.Run();
