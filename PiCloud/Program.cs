@@ -32,7 +32,7 @@ var tokenValidationParameters = new TokenValidationParameters()
     IssuerSigningKey = new SymmetricSecurityKey(key),
     ValidateIssuer = false, // Might not work -> change it to false
     ValidateAudience = false, // Might not work -> change it to false
-    RequireExpirationTime = false, // during dev
+    RequireExpirationTime = true, // during dev
     ValidateLifetime = true,
 };
 
