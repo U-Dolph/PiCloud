@@ -40,7 +40,6 @@ namespace PiCloud.Controllers
         [Route("register")]
         public async Task<IActionResult> Register([FromBody] UserRegistrationDTO userDto)
         {
-            Log.Information("Auth ");
             //Validate request
             if (ModelState.IsValid)
             {
@@ -218,9 +217,11 @@ namespace PiCloud.Controllers
 
             try
             {
-                _validationParameters.ValidateLifetime = false; // for testing
+                _validationParameters.ValidateLifetime = false;
 
                 var tokenInVerification = jwtTokenHandler.ValidateToken(tokenRequest.Token, _validationParameters, out var validatedToken);
+
+                _validationParameters.ValidateLifetime = true;
 
                 if (validatedToken is JwtSecurityToken jwtSecurityToken)
                 {
@@ -316,14 +317,15 @@ namespace PiCloud.Controllers
                 var dbUser = await _userManager.FindByIdAsync(storedToken.UserId);
                 return await generateJwt(dbUser);
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 return new AuthResult()
                 {
                     Result = false,
                     Errors = new List<string>
                     {
-                        "Unknown error!"
+                        "Unknown error!",
+                        e.Message, e.StackTrace
                     }
                 };
             }

@@ -19,11 +19,16 @@ builder.Services.AddDbContext<AppDbContext>(o => o.UseMySql(connectionString, Se
 
 builder.Services.Configure<JwtConfig>(builder.Configuration.GetSection("JwtConfig"));
 
-builder.Services.AddResponseCaching(x =>
+builder.Host.UseSerilog((context, config) =>
 {
-    x.UseCaseSensitivePaths = false;
-    x.MaximumBodySize = 1024;
+    config.WriteTo.Console();
 });
+
+//builder.Services.AddResponseCaching(x =>
+//{
+//    x.UseCaseSensitivePaths = false;
+//    x.MaximumBodySize = 1024;
+//});
 
 var key = Encoding.ASCII.GetBytes(builder.Configuration.GetSection("JwtConfig:Key").Value);
 var tokenValidationParameters = new TokenValidationParameters()
@@ -34,6 +39,7 @@ var tokenValidationParameters = new TokenValidationParameters()
     ValidateAudience = false, // Might not work -> change it to false
     RequireExpirationTime = true, // during dev
     ValidateLifetime = true,
+    ClockSkew = TimeSpan.Zero
 };
 
 builder.Services.AddAuthentication(options => {
@@ -82,16 +88,16 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Use(async (context, next) =>
-{
-    context.Response.GetTypedHeaders().CacheControl =
-        new Microsoft.Net.Http.Headers.CacheControlHeaderValue()
-        {
-            Public = true,
-            MaxAge = TimeSpan.FromSeconds(300)
-        };
+//app.Use(async (context, next) =>
+//{
+//    context.Response.GetTypedHeaders().CacheControl =
+//        new Microsoft.Net.Http.Headers.CacheControlHeaderValue()
+//        {
+//            Public = true,
+//            MaxAge = TimeSpan.FromSeconds(300)
+//        };
 
-    await next();
-});
+//    await next();
+//});
 
 app.Run();
