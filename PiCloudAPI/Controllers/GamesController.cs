@@ -18,7 +18,7 @@ namespace PiCloud.Controllers
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin,user")]
+        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin,user")]
         public async Task<IEnumerable<Game>> Get()
         {
             return await _context.Games.ToListAsync();
@@ -27,7 +27,7 @@ namespace PiCloud.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(Game), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin,user")]
+        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin,user")]
         public async Task<IActionResult> GetById(int id)
         {
             var game = await _context.Games.FindAsync(id);

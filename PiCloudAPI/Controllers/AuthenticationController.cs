@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -208,6 +210,17 @@ namespace PiCloud.Controllers
                 {
                     "Invalid parameters"
                 }
+            });
+        }
+
+        [HttpGet]
+        [Route("validateAdminPrivileges")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
+        public IActionResult ValidateAdminPrivileges()
+        {
+            return Ok(new AuthResult()
+            {
+                Result = true
             });
         }
 

@@ -16,10 +16,13 @@ namespace PiCloudDashboard.Controllers
             _logger = logger;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            if (HttpContext.Session.GetString("JWT") == null)
+            var authResponse = await ValidatePrivileges();
+
+            if (!authResponse.Success)
                 return Redirect("~/login");
+            
 
             return View();
         }
@@ -32,23 +35,13 @@ namespace PiCloudDashboard.Controllers
 
         public async Task<IActionResult> Games()
         {
-            if (HttpContext.Session.GetString("JWT") == null)
-                return Redirect("~/login");
+            var authResponse = await ValidatePrivileges();
 
+            if (!authResponse.Success)
+                return Redirect("~/login");
 
             var result = await getGamesList();
 
-            if (result.StatusCode == HttpStatusCode.Unauthorized)
-            {
-                var refreshResult = await refreshJwt(HttpContext.Session.GetString("JWT"));
-
-                if (!refreshResult.Success)
-                    return Redirect("~/login");
-
-                _logger.Log(LogLevel.Information, "refresh success");
-                
-                result = await getGamesList();
-            }
 
             if (result.Success)
             {
@@ -59,6 +52,47 @@ namespace PiCloudDashboard.Controllers
             return Redirect("~/login");
         }
 
+        [Route("game/{id}")]
+        public async Task<IActionResult> Game(int id)
+        {
+            var authResponse = await ValidatePrivileges();
+
+            if (!authResponse.Success)
+                return Redirect("~/login");
+
+            var result = await getGameById(id);
+            Game game = JsonConvert.DeserializeObject<Game>(result.Response);
+            return View(game);
+        }
+
+        [Route("edit/{id}")]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var authResponse = await ValidatePrivileges();
+
+            if (!authResponse.Success)
+                return Redirect("~/login");
+
+            var result = await getGameById(id);
+
+
+            //if (result.StatusCode == HttpStatusCode.Unauthorized)
+            //{
+            //    var refreshResult = await refreshJwt(HttpContext.Session.GetString("JWT"));
+
+            //    if (!refreshResult.Success)
+            //        return Redirect("~/login");
+
+            //    _logger.Log(LogLevel.Information, "refresh success");
+
+            //    result = await getGamesList();
+            //}
+
+            return View();
+        }
+
+
+        #region background
         public async Task<IActionResult> LoginUser(User user)
         {
             using (var httpClient = new HttpClient())
@@ -75,7 +109,7 @@ namespace PiCloudDashboard.Controllers
 
                         if (jwt.Result)
                         {
-                            HttpContext.Session.SetString("JWT", JsonConvert.SerializeObject(new TokenDTO() { Token = jwt.Token, RefreshToken = jwt.RefreshToken}));
+                            HttpContext.Session.SetString("JWT", JsonConvert.SerializeObject(new TokenDTO() { Token = jwt.Token, RefreshToken = jwt.RefreshToken }));
                             return Redirect("/");
                         }
                     }
@@ -85,14 +119,89 @@ namespace PiCloudDashboard.Controllers
             }
         }
 
-        private async Task<ResponseResult> getGamesList()
+        public async Task<IActionResult> LogoutUser()
         {
+            HttpContext.Session.Remove("JWT");
+            return Redirect("~/login");
+        }
+
+        public async Task<ResponseResult> ValidatePrivileges()
+        {
+            if (HttpContext.Session.GetString("JWT") == null)
+                return new ResponseResult()
+                {
+                    Success = false,
+                    StatusCode = HttpStatusCode.BadRequest
+                };
+
             using (var httpClient = new HttpClient())
             {
                 var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
                 httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
 
+                var response = await httpClient.GetAsync("https://localhost:7270/api/Authentication/validateAdminPrivileges");
+
+                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    var refreshResult = await refreshJwt(HttpContext.Session.GetString("JWT"));
+
+                    if (!refreshResult.Success)
+                        return new ResponseResult()
+                        {
+                            Success = false,
+                            StatusCode = HttpStatusCode.BadRequest
+                        };
+
+                    _logger.Log(LogLevel.Information, "refresh success");
+
+                    response = await httpClient.GetAsync("https://localhost:7270/api/Authentication/validateAdminPrivileges");
+                }
+
+                if (!response.IsSuccessStatusCode)
+                    return new ResponseResult()
+                    {
+                        Success = false,
+                        StatusCode = HttpStatusCode.BadRequest
+                    };
+
+            }
+
+            return new ResponseResult()
+            {
+                Success = true,
+                StatusCode = HttpStatusCode.OK
+            };
+        }
+
+        private async Task<ResponseResult> getGamesList()
+        {
+            using (var httpClient = new HttpClient())
+            {
+                //var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
+                //httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
+
                 using (var response = await httpClient.GetAsync("https://localhost:7270/api/Games/"))
+                {
+                    string responseContent = await response.Content.ReadAsStringAsync();
+
+                    return new ResponseResult()
+                    {
+                        Success = response.IsSuccessStatusCode,
+                        StatusCode = response.StatusCode,
+                        Response = responseContent
+                    };
+                }
+            }
+        }
+
+        private async Task<ResponseResult> getGameById(int id)
+        {
+            using (var httpClient = new HttpClient())
+            {
+                //var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
+                //httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
+
+                using (var response = await httpClient.GetAsync($"https://localhost:7270/api/Games/{id}"))
                 {
                     string responseContent = await response.Content.ReadAsStringAsync();
 
@@ -135,5 +244,6 @@ namespace PiCloudDashboard.Controllers
                 }
             }
         }
+        #endregion
     }
 }

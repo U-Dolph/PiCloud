@@ -39,7 +39,7 @@ var tokenValidationParameters = new TokenValidationParameters()
     ValidateAudience = false, // Might not work -> change it to false
     RequireExpirationTime = true, // during dev
     ValidateLifetime = true,
-    ClockSkew = TimeSpan.Zero
+    ClockSkew = TimeSpan.FromSeconds(5)
 };
 
 builder.Services.AddAuthentication(options => {
