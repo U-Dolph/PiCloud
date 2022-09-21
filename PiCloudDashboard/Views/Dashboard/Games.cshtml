@@ -20,7 +20,7 @@
                         <th scope="col">#</th>
                         <th scope="col">Title</th>
                         <th scope="col">Version</th>
-                        @*<th scope="col">Action</th>*@
+                        <th scope="col">Action</th>
                     </tr>
                 </thead>
 
@@ -32,6 +32,9 @@
                             <td>
                                     <a href="/game/@item.Id">@item.Name</a></td>
                             <td>@item.Version</td>
+                            <td>
+                                <input type="button" value="Edit" class="btn btn-primary" onclick="@("window.location.href='/edit/" + @item.Id + "'");" />
+                            </td>
                         </tr>
                     }
                 </tbody>
