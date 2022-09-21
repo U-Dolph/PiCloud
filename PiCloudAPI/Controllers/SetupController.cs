@@ -6,7 +6,7 @@ using PiCloud.Data;
 
 namespace PiCloud.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("setup")]
     [ApiController]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
     public class SetupController : ControllerBase
@@ -23,6 +23,7 @@ namespace PiCloud.Controllers
         }
 
         [HttpGet]
+        [Route("roles")]
         public IActionResult AllRoles()
         {
             var roles = _roleManager.Roles.ToList();
@@ -30,6 +31,7 @@ namespace PiCloud.Controllers
         }
 
         [HttpPost]
+        [Route("add-role")]
         public async Task<IActionResult> CreateRole(string name)
         {
             // Check if role exists
@@ -62,7 +64,7 @@ namespace PiCloud.Controllers
         }
 
         [HttpPost]
-        [Route("assignRole")]
+        [Route("assign-role")]
         public async Task<IActionResult> AssignRole(string email, string roleName)
         {
             // Check if role exists
@@ -80,7 +82,7 @@ namespace PiCloud.Controllers
         }
 
         [HttpGet]
-        [Route("getuserroles")]
+        [Route("get-users-roles")]
         public async Task<IActionResult> GetUserRoles(string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
@@ -92,7 +94,7 @@ namespace PiCloud.Controllers
         }
 
         [HttpPost]
-        [Route("revokeRole")]
+        [Route("revoke-role")]
         public async Task<IActionResult> RevokeRole(string email, string roleName)
         {
             var roleExist = await _roleManager.RoleExistsAsync(roleName);

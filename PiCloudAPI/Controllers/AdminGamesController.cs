@@ -5,29 +5,31 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PiCloud.Data;
 using PiCloud.Models;
+using System.Data;
 
-namespace PiCloud.Controllers
+namespace PiCloudAPI.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("admin-api")]
     [ApiController]
-    public class GamesController : ControllerBase
+    public class AdminGamesController : ControllerBase
     {
         private readonly AppDbContext _context;
 
-        public GamesController(AppDbContext context) => _context = context;
+        public AdminGamesController(AppDbContext context) => _context = context;
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin,user")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
+        [Route("games")]
         public async Task<IEnumerable<Game>> Get()
         {
             return await _context.Games.ToListAsync();
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("game/{id}")]
         [ProducesResponseType(typeof(Game), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin,user")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
         public async Task<IActionResult> GetById(int id)
         {
             var game = await _context.Games.FindAsync(id);
@@ -37,15 +39,16 @@ namespace PiCloud.Controllers
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
+        [Route("add-game")]
         public async Task<IActionResult> AddGame(Game game)
         {
             await _context.Games.AddAsync(game);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetById), new {id = game.Id}, game);
+            return CreatedAtAction(nameof(GetById), new { id = game.Id }, game);
         }
 
-        [HttpPatch("{id}")]
+        [HttpPatch("update/{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
@@ -59,7 +62,7 @@ namespace PiCloud.Controllers
             return NoContent();
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("delete/{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]

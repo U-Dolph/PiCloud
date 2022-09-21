@@ -14,7 +14,7 @@ using System.Text;
 
 namespace PiCloud.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("auth")]
     [ApiController]
     public class AuthenticationController : ControllerBase
     {
@@ -163,7 +163,7 @@ namespace PiCloud.Controllers
                 JwtId = token.Id,
                 Token = RandomStringGenerator(32),
                 AddedDate = DateTime.UtcNow,
-                ExpiryDate = DateTime.UtcNow.AddMonths(12),
+                ExpiryDate = DateTime.UtcNow.AddMonths(1),
                 IsRevoked = false,
                 IsUsed = false,
                 UserId = user.Id
@@ -214,7 +214,7 @@ namespace PiCloud.Controllers
         }
 
         [HttpGet]
-        [Route("validateAdminPrivileges")]
+        [Route("validate-admin")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
         public IActionResult ValidateAdminPrivileges()
         {
