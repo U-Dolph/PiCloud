@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using PiCloudDashboard.Data;
 using PiCloudDashboard.Models;
+using PiCloudDashboard.Services;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -11,10 +12,12 @@ namespace PiCloudDashboard.Controllers
     public class DashboardController : Controller
     {
         private readonly ILogger<DashboardController> _logger;
+        private readonly IFileUploadService _uploadService;
 
-        public DashboardController(ILogger<DashboardController> logger)
+        public DashboardController(ILogger<DashboardController> logger, IFileUploadService fileUploadService)
         {
             _logger = logger;
+            _uploadService = fileUploadService;
         }
 
         [VerifyRequest]
@@ -72,6 +75,20 @@ namespace PiCloudDashboard.Controllers
             }
 
             return Redirect("~/login");
+        }
+
+        [Route("add")]
+        [VerifyRequest]
+        public async Task<IActionResult> Add()
+        {
+            return View();
+        }
+
+        [Route("delete")]
+        [VerifyRequest]
+        public async Task<IActionResult> Delete(int id)
+        {
+            return View();
         }
 
 
@@ -197,8 +214,10 @@ namespace PiCloudDashboard.Controllers
             return JsonConvert.DeserializeObject<List<Game>>(response);
         }
 
+
+
         [VerifyRequest]
-        public async Task<IActionResult> EditGame(Game game)
+        public async Task<IActionResult> EditGame(Game game, IFormFile? gameFile)
         {
             if (!ModelState.IsValid)
             {
@@ -206,6 +225,15 @@ namespace PiCloudDashboard.Controllers
             }
 
             game.LastUpdated = DateTime.Now;
+
+            if (gameFile != null)
+            {
+                bool success = await _uploadService.UploadFile(gameFile);
+                if (success)
+                {
+                    game.FilePath = gameFile.FileName;
+                }
+            }
 
             using (var httpClient = new HttpClient())
             {
@@ -224,6 +252,56 @@ namespace PiCloudDashboard.Controllers
                     }
 
                     return Redirect($"~/edit/{game.Id}");
+                }
+            }
+        }
+
+        [VerifyRequest]
+        public async Task<IActionResult> AddGame(Game game)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Redirect($"~/add");
+            }
+
+            game.Featured = DateTime.Now;
+            game.LastUpdated = DateTime.Now;
+            game.Id = null;
+
+            using (var httpClient = new HttpClient())
+            {
+                var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
+                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
+
+                StringContent content = new StringContent(JsonConvert.SerializeObject(game), Encoding.UTF8, "application/json");
+
+                using (var response = await httpClient.PostAsync($"https://localhost:7270/admin-api/add-game/", content))
+                {
+                    string responseContent = await response.Content.ReadAsStringAsync();
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        return Redirect("~/games");
+                    }
+
+                    return Redirect($"~/add");
+                }
+            }
+        }
+
+        [VerifyRequest]
+        public async Task<IActionResult> DeleteGame(int id)
+        {
+            using (var httpClient = new HttpClient())
+            {
+                var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
+                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
+
+                using (var response = await httpClient.DeleteAsync($"https://localhost:7270/admin-api/delete/{id}"))
+                {
+                    string responseContent = await response.Content.ReadAsStringAsync();
+
+                    return Redirect("~/games");
                 }
             }
         }

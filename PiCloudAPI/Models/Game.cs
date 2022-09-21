@@ -4,7 +4,7 @@ namespace PiCloud.Models
 {
     public class Game
     {
-        public int Id { get; set; }
+        public int? Id { get; set; }
 
         [Required]
         public string Name { get; set; } = string.Empty;
@@ -16,5 +16,7 @@ namespace PiCloud.Models
         public DateTime Featured { get; set; }
         [Required]
         public DateTime LastUpdated { get; set; }
+        [Required]
+        public string FilePath { get; set; }
     }
 }

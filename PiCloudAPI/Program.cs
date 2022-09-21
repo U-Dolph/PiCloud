@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using PiCloud.Configurations;
 using PiCloud.Data;
@@ -88,16 +89,11 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-//app.Use(async (context, next) =>
-//{
-//    context.Response.GetTypedHeaders().CacheControl =
-//        new Microsoft.Net.Http.Headers.CacheControlHeaderValue()
-//        {
-//            Public = true,
-//            MaxAge = TimeSpan.FromSeconds(300)
-//        };
-
-//    await next();
-//});
+app.UseFileServer(new FileServerOptions { 
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), "..", "files")
+    ),
+    RequestPath = "/files"
+});
 
 app.Run();

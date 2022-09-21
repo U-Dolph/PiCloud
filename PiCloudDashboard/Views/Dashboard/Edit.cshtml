@@ -1,7 +1,7 @@
 ﻿@model Game
 
 @{
-    ViewData["Title"] = "PiCloud Games";
+    ViewData["Title"] = "PiCloud edit game";
     Layout = "~/Views/Shared/_DashboardLayout.cshtml";
 }
 
@@ -14,11 +14,12 @@
         </div>
 
         <div class="col-md-9">
-            <form asp-action="EditGame" asp-controller="Dashboard">
+            <form asp-action="EditGame" asp-controller="Dashboard" enctype="multipart/form-data">
                 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
                 
                 <input asp-for="Id" class="form-control" value="@Model.Id" type="hidden"/>
                 <input asp-for="Featured" class="form-control" value="@Model.Featured" type="hidden"/>
+                <input asp-for="FilePath" class="form-control" value="@Model.FilePath" type="hidden"/>
 
                 <div class="form-group">
                     <label asp-for="Name" class="form-control-label">Title:</label>
@@ -39,7 +40,22 @@
                 </div>
 
                 <div class="form-group">
+                    <label class="form-control-label">File:</label>
+                    <label class="form-control-label">Original: @Model.FilePath</label>
+                    <input type="file" class="form-control" name="gameFile" placeholder="1.0"/>
+                    <span asp-validation-for="FilePath" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
                     <input type="submit" value="Save" class="btn btn-primary"/>
+                </div>
+            </form>
+
+            <form asp-action="DeleteGame" asp-controller="Dashboard">
+                <input asp-for="Id" class="form-control" value="@Model.Id" type="hidden"/>
+
+                <div class="form-group">
+                    <input type="submit" value="Delete" class="btn btn-danger"/>
                 </div>
             </form>
         </div>
