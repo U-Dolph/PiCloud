@@ -1,0 +1,54 @@
+﻿@model User
+
+@{
+    ViewData["Title"] = "PiCloud User";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<div class="col-md-9">
+    <div class="panel panel-default">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col" colspan="2">Informations</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <th scope="row">Username</th>
+                    <td>@Model.Username</td>
+                </tr>
+
+                <tr>
+                    <th scope="row">E-mail</th>
+                    <td>@Model.Email</td>
+                </tr>
+
+                <tr>
+                    <th scope="row">Roles</th>
+                    <td>
+                        <ul>
+                            <form asp-action="RevokeRole" asp-controller="Dashboard">
+                                <input type="hidden" value="@Model.Id" name="userId"/>
+                                @foreach (string role in Model.Roles)
+                                {
+                                    <li>
+                                        @role
+                                        <button name="role" type="submit" class="btn-danger" value="@role">Rewoke</button>
+                                    </li>
+                                }
+                            </form>
+
+                            <form asp-action="AssignRole" asp-controller="Dashboard">
+                                <input type="hidden" value="@Model.Id" name="userId"/>
+                                <input type="text" value="" name="role"/>
+                                <input type="submit" class="btn btn-primary" value="Assign"/>
+                            </form>
+                        </ul>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

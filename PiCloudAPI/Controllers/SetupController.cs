@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using PiCloud.Data;
+using PiCloudDashboard.Data;
 
 namespace PiCloud.Controllers
 {
@@ -63,29 +64,35 @@ namespace PiCloud.Controllers
             return Ok(users);
         }
 
+        [HttpGet("user/{id}")]
+        public async Task<IActionResult> GetUserById(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            return Ok(user);
+        }
+
         [HttpPost]
         [Route("assign-role")]
-        public async Task<IActionResult> AssignRole(string email, string roleName)
+        public async Task<IActionResult> AssignRole(RoleDTO roleDTO)
         {
             // Check if role exists
-            var roleExist = await _roleManager.RoleExistsAsync(roleName);
-            var user = await _userManager.FindByEmailAsync(email);
+            var roleExist = await _roleManager.RoleExistsAsync(roleDTO.Role);
+            var user = await _userManager.FindByIdAsync(roleDTO.Id);
 
             if (user == null) { return BadRequest(new { error = "User does not exist!"}); }
             if (!roleExist) { return BadRequest(new { error = "Role does not exist!" }); }
 
-            var result = await _userManager.AddToRoleAsync(user, roleName);
+            var result = await _userManager.AddToRoleAsync(user, roleDTO.Role);
             
-            if (result.Succeeded) return Ok(new { result = $"{user.UserName} added to {roleName}" });
+            if (result.Succeeded) return Ok(new { result = $"{user.UserName} added to {roleDTO.Role}" });
 
-            return BadRequest(new { error = $"{user.UserName} cannot be added to {roleName}" });
+            return BadRequest(new { error = $"{user.UserName} cannot be added to {roleDTO.Role}" });
         }
 
-        [HttpGet]
-        [Route("get-users-roles")]
-        public async Task<IActionResult> GetUserRoles(string email)
+        [HttpGet("get-users-roles/{id}")]
+        public async Task<IActionResult> GetUserRoles(string id)
         {
-            var user = await _userManager.FindByEmailAsync(email);
+            var user = await _userManager.FindByIdAsync(id);
 
             if (user == null) { return BadRequest(new { error = "User does not exist!" }); }
 
@@ -95,19 +102,19 @@ namespace PiCloud.Controllers
 
         [HttpPost]
         [Route("revoke-role")]
-        public async Task<IActionResult> RevokeRole(string email, string roleName)
+        public async Task<IActionResult> RevokeRole(RoleDTO roleDTO)
         {
-            var roleExist = await _roleManager.RoleExistsAsync(roleName);
-            var user = await _userManager.FindByEmailAsync(email);
+            var roleExist = await _roleManager.RoleExistsAsync(roleDTO.Role);
+            var user = await _userManager.FindByIdAsync(roleDTO.Id);
 
             if (user == null) { return BadRequest(new { error = "User does not exist!" }); }
             if (!roleExist) { return BadRequest(new { error = "Role does not exist!" }); }
 
-            var result = await _userManager.RemoveFromRoleAsync(user, roleName);
+            var result = await _userManager.RemoveFromRoleAsync(user, roleDTO.Role);
 
-            if (result.Succeeded) return Ok(new { result = $"{user.UserName} removed from {roleName}" });
+            if (result.Succeeded) return Ok(new { result = $"{user.UserName} removed from {roleDTO.Role}" });
 
-            return BadRequest(new { error = $"{user.UserName} cannot be removed from {roleName}" });
+            return BadRequest(new { error = $"{user.UserName} cannot be removed from {roleDTO.Role}" });
         }
     }
 }

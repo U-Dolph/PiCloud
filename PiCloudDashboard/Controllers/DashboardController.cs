@@ -32,6 +32,9 @@ namespace PiCloudDashboard.Controllers
             return View();
         }
 
+
+
+        #region Game routes
         [Route("games")]
         [VerifyRequest]
         public async Task<IActionResult> Games()
@@ -41,7 +44,7 @@ namespace PiCloudDashboard.Controllers
             if (result.Success)
             {
                 List<Game> games = GameListConverter(result.Response);
-                return View(games);
+                return View("~/Views/Dashboard/Games/Games.cshtml", games);
             }
 
             return Redirect("~/login");
@@ -56,7 +59,7 @@ namespace PiCloudDashboard.Controllers
             if (result.Success)
             {
                 Game game = JsonConvert.DeserializeObject<Game>(result.Response);
-                return View(game);
+                return View("~/Views/Dashboard/Games/Game.cshtml", game);
             }
 
             return Redirect("~/login");
@@ -71,7 +74,7 @@ namespace PiCloudDashboard.Controllers
             if (result.Success)
             {
                 Game game = JsonConvert.DeserializeObject<Game>(result.Response);
-                return View(game);
+                return View("~/Views/Dashboard/Games/Edit.cshtml", game);
             }
 
             return Redirect("~/login");
@@ -81,15 +84,45 @@ namespace PiCloudDashboard.Controllers
         [VerifyRequest]
         public async Task<IActionResult> Add()
         {
-            return View();
+            return View("~/Views/Dashboard/Games/Add.cshtml");
+        }
+        #endregion
+
+
+        #region User routes
+        [Route("users")]
+        [VerifyRequest]
+        public async Task<IActionResult> Users()
+        {
+            var result = await getUsersList();
+
+            if (result.Success)
+            {
+                List<User> users = UserListConverter(result.Response);
+                return View("~/Views/Dashboard/Users/Users.cshtml", users);
+            }
+
+            return Redirect("~/login");
         }
 
-        [Route("delete")]
+        [Route("user/{id}")]
         [VerifyRequest]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> User(string id)
         {
-            return View();
+            var result = await getUserById(id);
+            var roleResult = await getUsersRoles(id);
+
+            if (result.Success && roleResult.Success)
+            {
+                User user = JsonConvert.DeserializeObject<User>(result.Response);
+                user.Roles = JsonConvert.DeserializeObject<List<string>>(roleResult.Response);
+
+                return View("~/Views/Dashboard/Users/User.cshtml", user);
+            }
+
+            return Redirect("~/login");
         }
+        #endregion
 
 
         #region background
@@ -214,6 +247,117 @@ namespace PiCloudDashboard.Controllers
             return JsonConvert.DeserializeObject<List<Game>>(response);
         }
 
+
+
+        private async Task<ResponseResult> getUsersList()
+        {
+            using (var httpClient = new HttpClient())
+            {
+                var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
+                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
+
+                using (var response = await httpClient.GetAsync("https://localhost:7270/setup/users/"))
+                {
+                    string responseContent = await response.Content.ReadAsStringAsync();
+
+                    return new ResponseResult()
+                    {
+                        Success = response.IsSuccessStatusCode,
+                        StatusCode = response.StatusCode,
+                        Response = responseContent
+                    };
+                }
+            }
+        }
+
+        private async Task<ResponseResult> getUserById(string id)
+        {
+            using (var httpClient = new HttpClient())
+            {
+                var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
+                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
+
+                var response = await httpClient.GetAsync($"https://localhost:7270/setup/user/{id}");
+                var rolesResponse = await httpClient.GetAsync($"https://localhost:7270/setup/get-users-roles/{id}");
+
+                string responseContent = await response.Content.ReadAsStringAsync();
+                string rolesResponseContent = await rolesResponse.Content.ReadAsStringAsync();
+
+                return new ResponseResult()
+                {
+                    Success = response.IsSuccessStatusCode,
+                    StatusCode = response.StatusCode,
+                    Response = responseContent
+                };
+                
+            }
+        }
+
+        private async Task<ResponseResult> getUsersRoles(string id)
+        {
+            using (var httpClient = new HttpClient())
+            {
+                var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
+                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
+
+                var response = await httpClient.GetAsync($"https://localhost:7270/setup/get-users-roles/{id}");
+
+                string responseContent = await response.Content.ReadAsStringAsync();
+
+                return new ResponseResult()
+                {
+                    Success = response.IsSuccessStatusCode,
+                    StatusCode = response.StatusCode,
+                    Response = responseContent
+                };
+
+            }
+        }
+
+        private List<User> UserListConverter(string response)
+        {
+            return JsonConvert.DeserializeObject<List<User>>(response);
+        }
+
+        [VerifyRequest]
+        public async Task<IActionResult> RevokeRole(string userId, string role)
+        {
+            using (var httpClient = new HttpClient())
+            {
+                var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
+                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
+
+                StringContent content = new StringContent(JsonConvert.SerializeObject(new RoleDTO() { Id = userId, Role = role}), Encoding.UTF8, "application/json");
+
+                using (var response = await httpClient.PostAsync($"https://localhost:7270/setup/revoke-role/", content))
+                {
+                    string responseContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine();
+                }
+
+                return Redirect($"~/user/{userId}");
+            }
+        }
+
+        [VerifyRequest]
+        public async Task<IActionResult> AssignRole(string userId, string role)
+        {
+            using (var httpClient = new HttpClient())
+            {
+                var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
+                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
+
+                StringContent content = new StringContent(JsonConvert.SerializeObject(new RoleDTO() { Id = userId, Role = role }), Encoding.UTF8, "application/json");
+
+                using (var response = await httpClient.PostAsync($"https://localhost:7270/setup/assign-role/", content))
+                {
+                    string responseContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine();
+                }
+
+                return Redirect($"~/user/{userId}");
+            }
+        }
 
 
         [VerifyRequest]

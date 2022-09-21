@@ -1,0 +1,40 @@
+﻿@model List<User>
+
+@{
+    ViewData["Title"] = "PiCloud Users";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<h1>Users</h1>
+
+<div class="col-md-9">
+    <div class="panel panel-default">
+        <div class="panel-body">
+            @*<input type="button" value="New Game" class="btn btn-primary" onclick="@("window.location.href='/add/'");" />*@
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">Username</th>
+                        <th scope="col">E-mail</th>
+                        @*<th scope="col">Version</th>*@
+                        <th scope="col">Action</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <th scope="row">@item.Username</th>
+                            <td>@item.Email</td>
+                            <td>
+                                    <input type="button" value="Manage" class="btn btn-primary" onclick="@("window.location.href='/user/" + @item.Id + "'");" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
