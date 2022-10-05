@@ -5,6 +5,7 @@ using PiCloudDashboard.Models;
 using PiCloudDashboard.Services;
 using System.Net;
 using System.Net.Http;
+using System.Net.Mime;
 using System.Text;
 
 namespace PiCloudDashboard.Controllers
@@ -13,11 +14,17 @@ namespace PiCloudDashboard.Controllers
     {
         private readonly ILogger<DashboardController> _logger;
         private readonly IFileUploadService _uploadService;
+        private readonly IConfiguration _configuration;
 
-        public DashboardController(ILogger<DashboardController> logger, IFileUploadService fileUploadService)
+        private string ApiUrl;
+
+        public DashboardController(ILogger<DashboardController> logger, IFileUploadService fileUploadService, IConfiguration configuration)
         {
             _logger = logger;
             _uploadService = fileUploadService;
+            _configuration = configuration;
+
+            ApiUrl = _configuration.GetSection("APIUrl").Value;
         }
 
         [VerifyRequest]
@@ -132,7 +139,7 @@ namespace PiCloudDashboard.Controllers
             {
                 StringContent content = new StringContent(JsonConvert.SerializeObject(user), Encoding.UTF8, "application/json");
 
-                using (var response = await httpClient.PostAsync("https://localhost:7270/auth/login", content))
+                using (var response = await httpClient.PostAsync($"{ApiUrl}/auth/login", content))
                 {
                     string responseContent = await response.Content.ReadAsStringAsync();
 
@@ -171,7 +178,7 @@ namespace PiCloudDashboard.Controllers
             {
                 httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
 
-                var response = await httpClient.GetAsync("https://localhost:7270/auth/validate-admin");
+                var response = await httpClient.GetAsync($"{ApiUrl}/auth/validate-admin");
 
                 if (response.StatusCode == HttpStatusCode.Unauthorized)
                     return new ResponseResult()
@@ -207,7 +214,7 @@ namespace PiCloudDashboard.Controllers
                 var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
                 httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
 
-                using (var response = await httpClient.GetAsync("https://localhost:7270/admin-api/games/"))
+                using (var response = await httpClient.GetAsync($"{ApiUrl}/admin-api/games/"))
                 {
                     string responseContent = await response.Content.ReadAsStringAsync();
 
@@ -228,7 +235,7 @@ namespace PiCloudDashboard.Controllers
                 var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
                 httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
 
-                using (var response = await httpClient.GetAsync($"https://localhost:7270/admin-api/game/{id}"))
+                using (var response = await httpClient.GetAsync($"{ApiUrl}/admin-api/game/{id}"))
                 {
                     string responseContent = await response.Content.ReadAsStringAsync();
 
@@ -256,7 +263,7 @@ namespace PiCloudDashboard.Controllers
                 var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
                 httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
 
-                using (var response = await httpClient.GetAsync("https://localhost:7270/setup/users/"))
+                using (var response = await httpClient.GetAsync($"{ApiUrl}/setup/users/"))
                 {
                     string responseContent = await response.Content.ReadAsStringAsync();
 
@@ -277,8 +284,8 @@ namespace PiCloudDashboard.Controllers
                 var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
                 httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
 
-                var response = await httpClient.GetAsync($"https://localhost:7270/setup/user/{id}");
-                var rolesResponse = await httpClient.GetAsync($"https://localhost:7270/setup/get-users-roles/{id}");
+                var response = await httpClient.GetAsync($"{ApiUrl}/setup/user/{id}");
+                var rolesResponse = await httpClient.GetAsync($"{ApiUrl}/setup/get-users-roles/{id}");
 
                 string responseContent = await response.Content.ReadAsStringAsync();
                 string rolesResponseContent = await rolesResponse.Content.ReadAsStringAsync();
@@ -300,7 +307,7 @@ namespace PiCloudDashboard.Controllers
                 var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
                 httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
 
-                var response = await httpClient.GetAsync($"https://localhost:7270/setup/get-users-roles/{id}");
+                var response = await httpClient.GetAsync($"{ApiUrl}/setup/get-users-roles/{id}");
 
                 string responseContent = await response.Content.ReadAsStringAsync();
 
@@ -329,7 +336,7 @@ namespace PiCloudDashboard.Controllers
 
                 StringContent content = new StringContent(JsonConvert.SerializeObject(new RoleDTO() { Id = userId, Role = role}), Encoding.UTF8, "application/json");
 
-                using (var response = await httpClient.PostAsync($"https://localhost:7270/setup/revoke-role/", content))
+                using (var response = await httpClient.PostAsync($"{ApiUrl}/setup/revoke-role/", content))
                 {
                     string responseContent = await response.Content.ReadAsStringAsync();
                     Console.WriteLine();
@@ -349,7 +356,7 @@ namespace PiCloudDashboard.Controllers
 
                 StringContent content = new StringContent(JsonConvert.SerializeObject(new RoleDTO() { Id = userId, Role = role }), Encoding.UTF8, "application/json");
 
-                using (var response = await httpClient.PostAsync($"https://localhost:7270/setup/assign-role/", content))
+                using (var response = await httpClient.PostAsync($"{ApiUrl}/setup/assign-role/", content))
                 {
                     string responseContent = await response.Content.ReadAsStringAsync();
                     Console.WriteLine();
@@ -372,10 +379,10 @@ namespace PiCloudDashboard.Controllers
 
             if (gameFile != null)
             {
-                bool success = await _uploadService.UploadFile(gameFile);
-                if (success)
+                Tuple<bool, string> result = await _uploadService.UploadFile(gameFile, game);
+                if (result.Item1)
                 {
-                    game.FilePath = gameFile.FileName;
+                    game.FilePath = result.Item2;
                 }
             }
 
@@ -386,7 +393,7 @@ namespace PiCloudDashboard.Controllers
 
                 StringContent content = new StringContent(JsonConvert.SerializeObject(game), Encoding.UTF8, "application/json");
 
-                using (var response = await httpClient.PatchAsync($"https://localhost:7270/admin-api/update/{game.Id}", content))
+                using (var response = await httpClient.PatchAsync($"{ApiUrl}/admin-api/update/{game.Id}", content))
                 {
                     string responseContent = await response.Content.ReadAsStringAsync();
 
@@ -401,7 +408,7 @@ namespace PiCloudDashboard.Controllers
         }
 
         [VerifyRequest]
-        public async Task<IActionResult> AddGame(Game game)
+        public async Task<IActionResult> AddGame(Game game, IFormFile? gameFile)
         {
             if (!ModelState.IsValid)
             {
@@ -410,7 +417,17 @@ namespace PiCloudDashboard.Controllers
 
             game.Featured = DateTime.Now;
             game.LastUpdated = DateTime.Now;
+            game.FilePath = "none";
             game.Id = null;
+
+            if (gameFile != null)
+            {
+                Tuple<bool, string> result = await _uploadService.UploadFile(gameFile, game);
+                if (result.Item1)
+                {
+                    game.FilePath = result.Item2;
+                }
+            }
 
             using (var httpClient = new HttpClient())
             {
@@ -419,7 +436,7 @@ namespace PiCloudDashboard.Controllers
 
                 StringContent content = new StringContent(JsonConvert.SerializeObject(game), Encoding.UTF8, "application/json");
 
-                using (var response = await httpClient.PostAsync($"https://localhost:7270/admin-api/add-game/", content))
+                using (var response = await httpClient.PostAsync($"{ApiUrl}/admin-api/add-game/", content))
                 {
                     string responseContent = await response.Content.ReadAsStringAsync();
 
@@ -441,7 +458,7 @@ namespace PiCloudDashboard.Controllers
                 var token = JsonConvert.DeserializeObject<TokenDTO>(HttpContext.Session.GetString("JWT"));
                 httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + token.Token);
 
-                using (var response = await httpClient.DeleteAsync($"https://localhost:7270/admin-api/delete/{id}"))
+                using (var response = await httpClient.DeleteAsync($"{ApiUrl}/admin-api/delete/{id}"))
                 {
                     string responseContent = await response.Content.ReadAsStringAsync();
 

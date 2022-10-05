@@ -17,6 +17,6 @@ namespace PiCloud.Models
         [Required]
         public DateTime LastUpdated { get; set; }
         [Required]
-        public string FilePath { get; set; }
+        public string FilePath { get; set; } = string.Empty;
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace PiCloudDashboard.Services
+﻿using PiCloudDashboard.Models;
+
+namespace PiCloudDashboard.Services
 {
     public class FileUploadService : IFileUploadService
     {
@@ -9,21 +11,21 @@
             _env = env;
         }
 
-        public async Task<bool> UploadFile(IFormFile file)
+        public async Task<Tuple<bool, string>> UploadFile(IFormFile file, Game game)
         {
-            var filePath = Path.Combine(_env.ContentRootPath, "..", "files", file.FileName);
+            var filePath = Path.Combine(_env.ContentRootPath, "..", "files", $"{game.Name}-{file.FileName}");
 
             try
             {
-                using (var fileStream = new FileStream(filePath, FileMode.CreateNew))
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
                 {
                     await file.CopyToAsync(fileStream);
-                    return true;
+                    return Tuple.Create(true, $"{game.Name}-{file.FileName}");
                 }
             }
             catch (Exception ex)
             {
-                return false;
+                return Tuple.Create(false, "None");
             }
 
         }

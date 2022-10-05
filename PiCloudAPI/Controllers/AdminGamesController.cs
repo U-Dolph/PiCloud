@@ -36,10 +36,9 @@ namespace PiCloudAPI.Controllers
             return game == null ? NotFound() : Ok(game);
         }
 
-        [HttpPost]
+        [HttpPost("add-game")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "admin")]
-        [Route("add-game")]
         public async Task<IActionResult> AddGame(Game game)
         {
             await _context.Games.AddAsync(game);

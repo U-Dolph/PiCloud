@@ -1,7 +1,9 @@
-﻿namespace PiCloudDashboard.Services
+﻿using PiCloudDashboard.Models;
+
+namespace PiCloudDashboard.Services
 {
     public interface IFileUploadService
     {
-        Task<bool> UploadFile(IFormFile file);
+        Task<Tuple<bool, string>> UploadFile(IFormFile file, Game game);
     }
 }
